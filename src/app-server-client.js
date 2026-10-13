@@ -1,12 +1,12 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 
-const DEFAULT_CODEX_BIN = "/Applications/Codex.app/Contents/Resources/codex";
+import { resolveApplication } from "./application-resolver.js";
 const DEFAULT_TIMEOUT_MS = 20_000;
 
 export class AppServerClient {
   constructor(options = {}) {
-    this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? DEFAULT_CODEX_BIN;
+    this.codexBin = resolveApplication(options);
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.nextId = 1;
     this.pending = new Map();
@@ -28,8 +28,14 @@ export class AppServerClient {
       this.stderrTail = redactSensitive(`${this.stderrTail}${chunk}`).slice(-4000);
     });
 
+    const failPending = (error) => {
+      for (const { reject, timeout } of this.pending.values()) { clearTimeout(timeout); reject(error); }
+      this.pending.clear();
+    };
+    this.child.on("error", (error) => failPending(error));
     this.child.on("exit", () => {
-      for (const { reject } of this.pending.values()) {
+      for (const { reject, timeout } of this.pending.values()) {
+        clearTimeout(timeout);
         reject(new Error("Codex app-server exited before responding."));
       }
       this.pending.clear();
@@ -68,7 +74,7 @@ export class AppServerClient {
     await this.request("initialize", {
       clientInfo: {
         name: "codex_usage_status",
-        title: "Codex Usage Status",
+        title: "Codex Dosage",
         version: "0.1.0",
       },
       capabilities: {

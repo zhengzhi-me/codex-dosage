@@ -1,137 +1,79 @@
-# Codex Usage Status
+# Codex Dosage
 
-Small macOS menu-bar app for showing Codex usage at a glance.
+<img src="assets/logo.svg" width="96" alt="Codex Dosage icon" />
 
-![Codex Usage Status menu-bar badge](docs/assets/menu-bar-badge.png)
+English · [简体中文](README.zh-CN.md)
 
-It displays usage as a compact side-labeled double-ring badge:
+A lightweight macOS menu-bar companion for Codex: check your 5-hour and weekly quotas, reset times, available usage resets, and credit balance at a glance.
 
-- left ring group: 5-hour remaining percentage
-- right ring group: weekly remaining percentage
-- ring progress: remaining quota status
-- ring center number: remaining percentage
-- side labels: `5H` and `7D`
+Based on [tollenceld/codex-usage-status](https://github.com/tollenceld/codex-usage-status), with a redesigned usage panel, bilingual settings, and support for both ChatGPT and Codex application bundles. Independent third-party software; not affiliated with or endorsed by OpenAI.
 
-The menu-bar badge is the primary interface. Clicking it only exposes the necessary actions: Refresh, Settings, and Quit.
+## Features
 
-Double Ring is the default display style. It uses no capsule background, and each label sits beside its own ring instead of inside the ring. A larger accessibility-oriented style is available from Display Style > Large Readout. Large Readout keeps the same two values visible in the menu bar, but prioritizes even larger readable numbers with weak `5H` / `7D` labels and thin status lines.
+- **Menu-bar status:** compact double rings show remaining 5-hour and weekly quotas; a larger readout is available in Settings.
+- **Usage panel:** left-click to see quota bars, reset times, available reset-card count and expiration dates. Credit balance appears when the official interface provides it. Right-click for Settings, Refresh, and Quit.
+- **Read-only resets:** displays reset cards without consuming them or changing account limits.
+- **Application discovery:** automatically finds supported ChatGPT/Codex bundles by identity and structure. Manual mode lets you choose a custom installation location; renamed bundles and paths with spaces are supported.
+- **Languages:** System default, Simplified Chinese, or English, with immediate switching and saved preferences.
+- **Refresh:** normally every 120 seconds; retry after 300 seconds on failure. Keeps the last successful data and its timestamp. Missing quota values are shown as unknown.
+- **Native UI:** AppKit/SwiftUI popover with compact system typography, dark-mode support, and an original terminal-inspired icon.
 
-## Safety model
+## Screenshots
 
-This app only calls the official local Codex app-server method `account/rateLimits/read`. It does not modify Codex, does not read `~/.codex/auth.json`, and does not handle tokens, cookies, sessions, OAuth credentials, API keys, or browser data.
+### Usage panel
 
-See [PRIVACY.md](PRIVACY.md) for the user-facing privacy summary and [SECURITY.md](SECURITY.md) for the hard engineering boundaries.
+<img src="docs/assets/usage-panel.png" width="472" alt="Codex usage panel with quotas, reset cards and balance" />
 
-## Requirements
+### Settings: automatic and manual discovery
 
-- macOS 13 or later
-- Codex desktop installed at `/Applications/Codex.app`
-- You are already signed in to Codex
+<img src="docs/assets/settings-automatic.png" width="360" alt="Settings with automatic application discovery" />
+<img src="docs/assets/settings-manual.png" width="360" alt="Settings with manual application selection" />
 
-## Install from release
+Screenshots show example account values; your quotas, reset cards, dates, and balance may differ.
 
-1. Download the latest release ZIP for your Mac from [GitHub Releases](https://github.com/tollenceld/codex-usage-status/releases/latest):
-   - Apple Silicon: `CodexUsageStatus-<version>-macos-arm64.zip`
-   - Intel: `CodexUsageStatus-<version>-macos-x86_64.zip`
-2. Unzip it.
-3. Move `CodexUsageStatus.app` to `/Applications`.
-4. Open `CodexUsageStatus.app`.
+## Install V0.1.0
 
-The app is a menu-bar-only app, so it does not appear in the Dock. Optional: add it to macOS System Settings > General > Login Items.
+Download [Codex-Dosage-0.1.0-macos-arm64.zip](https://github.com/zhengzhi-me/codex-dosage/releases/download/V0.1.0/Codex-Dosage-0.1.0-macos-arm64.zip) from [Releases](https://github.com/zhengzhi-me/codex-dosage/releases).
 
-Unsigned GitHub builds may trigger macOS Gatekeeper warnings. For a public polished release, sign with an Apple Developer ID and notarize the app.
+1. Quit any previous version, unzip, and move **Codex Dosage.app** into Applications.
+2. Open the app. It runs in the menu bar and does not appear in the Dock.
+3. Sign in through the official ChatGPT/Codex app. Use manual discovery if needed.
 
-## Known limitations
+Requires **macOS 13+** and a supported official desktop app. This release contains an **Apple Silicon (arm64)** build. Intel users can build from source; an Intel binary is not included or runtime-tested in V0.1.0.
 
-- Codex desktop must be installed at `/Applications/Codex.app`, unless `CODEX_BIN` is set for development.
-- You must already be signed in to Codex.
-- Live usage depends on Codex's local app-server method `account/rateLimits/read`; if that local interface changes, this app may need an update.
-- The app shows usage only. It cannot buy credits, switch accounts, retry login, or change limits.
-- Local builds are ad-hoc signed by default. Downloaded release ZIPs may show Gatekeeper warnings until a notarized build is available.
+The download is ad-hoc signed and is not Apple-notarized, so macOS may show a security warning. Existing app preferences are preserved. If you used an older login item, update it to the renamed app.
 
-## Build from source
+## Data source and privacy
 
-For source builds:
+Codex Dosage invokes the official app bundle's `app-server` through local standard input/output and calls `account/rateLimits/read`. It does not scrape the screen, read authentication files, or send telemetry. **The official server may use the network to fetch current account data; local IPC does not imply offline operation.** On refresh failure the last successful data remains visible.
 
-- Swift toolchain / Xcode Command Line Tools
-- Node.js 20 or later for tests and the optional CLI probe
+Reset cards and balances depend on the fields returned by the official interface. No card consumption, credit purchase, account switching, or login operation is performed. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
+
+## Build and CLI
+
+Use Swift 6+ / Xcode Command Line Tools; Node.js 20+ is needed for tests and the optional CLI.
 
 ```sh
 npm test
+npm run test:macos
 npm run build:macos
 npm run start:macos
 ```
 
-The build script defaults to the Mac's hardware architecture. On Apple Silicon this creates an `arm64` app, even if Node.js is running under Rosetta. To build a specific architecture:
+The app is generated at `dist/Codex Dosage.app`. To create a release ZIP, run `npm run package:macos`. `BUILD_ARCH=x86_64` selects an Intel build. With standalone Command Line Tools, use `DEVELOPER_DIR=/Library/Developer/CommandLineTools`. Xcode license acceptance must be completed by the user if prompted.
 
 ```sh
-BUILD_ARCH=arm64 npm run build:macos
-BUILD_ARCH=x86_64 npm run build:macos
-```
-
-To install into `/Applications`:
-
-```sh
-npm run install:macos
-```
-
-The app is a menu-bar-only app, so it does not appear in the Dock.
-
-To change the menu-bar display, click the badge and choose Display Style:
-
-- Double Ring: compact default with side labels and circular quota indicators.
-- Large Readout: larger numbers with subtle status lines for easier reading.
-
-The default refresh interval is 120 seconds, with a 60-second minimum. To override it:
-
-```sh
-CODEX_USAGE_REFRESH_SECONDS=180 npm run start:macos
-```
-
-## CLI probe
-
-The CLI uses the same safe app-server source and is useful for debugging:
-
-```sh
-npm run usage
+npm run usage -- --lang=en
 npm run usage:json
+npm run usage -- --app="/Applications/ChatGPT.app"
 ```
 
-The CLI output remains text-based for logs and tests even though the macOS menu-bar UI is a graphic badge.
+Development overrides: `CODEX_BIN` for an executable, `CODEX_APP` for a bundle, and `CODEX_USAGE_REFRESH_SECONDS` for the refresh interval (minimum 60 seconds). Demo mode is explicit: `CODEX_USAGE_DEMO=1`; normal runs use account data.
 
-If your Codex binary lives somewhere else:
+## Credits and license
 
-```sh
-CODEX_BIN=/path/to/codex npm run usage
-```
+- Upstream: [tollenceld/codex-usage-status](https://github.com/tollenceld/codex-usage-status). Original copyright and [MIT license](LICENSE) are preserved.
+- Application icon: user-provided SVG/PNG, with a terminal symbol adapted from [Lucide terminal](https://lucide.dev/icons/terminal). Related ISC/MIT notices are included in [licenses/Lucide-LICENSE](licenses/Lucide-LICENSE).
+- Modifications: application discovery, bilingual UI, usage/reset-card panel, refresh status, icon, and packaging.
 
-## Release package
-
-```sh
-npm run package:macos
-npm run package:macos:all
-```
-
-`package:macos` creates a zipped `.app` for the current Mac architecture. `package:macos:all` creates both `arm64` and `x86_64` ZIPs plus `SHA256SUMS.txt` in `dist/`.
-
-Release ZIPs are architecture-specific:
-
-- `CodexUsageStatus-<version>-macos-arm64.zip` for Apple Silicon Macs.
-- `CodexUsageStatus-<version>-macos-x86_64.zip` for Intel Macs.
-
-For another MacBook, the most reliable source-build path is to clone the repository on that Mac and run `npm run install:macos`; it will build the correct native architecture there.
-
-## Repository layout
-
-- `macos/CodexUsageStatus/`: native AppKit menu-bar app.
-  - `App/`: status item lifecycle, menu actions, refresh scheduling, and configuration.
-  - `Codex/`: local Codex app-server JSON-RPC client.
-  - `Domain/`: rate-limit response models and usage normalization.
-  - `UI/`: badge styles and AppKit drawing code.
-- `src/`: Node CLI probe for diagnostics and tests.
-- `test/`: Node tests for response normalization and sensitive-output redaction.
-- `scripts/`: build, run, install, and release packaging scripts.
-- `.github/workflows/`: CI and release artifact workflows.
-- `docs/`: architecture, structure, release, and upstream integration notes.
-
-See [docs/project-structure.md](docs/project-structure.md) for the source layout and dependency boundaries.
+OpenAI, ChatGPT, and Codex names and trademarks belong to their respective owners. Earlier local development versions are recorded in [development history](docs/development-history.md); **V0.1.0** starts the independent Codex Dosage release series.

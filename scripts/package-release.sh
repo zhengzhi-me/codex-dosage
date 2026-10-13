@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
-APP_DIR="$DIST_DIR/CodexUsageStatus.app"
+APP_DIR="$DIST_DIR/Codex Dosage.app"
 VERSION="${VERSION:-0.1.0}"
 
 detect_hardware_arch() {
@@ -32,13 +32,13 @@ case "$BUILD_ARCH" in
     ;;
 esac
 
-ZIP_NAME="CodexUsageStatus-${VERSION}-macos-${BUILD_ARCH}.zip"
+ZIP_NAME="Codex-Dosage-${VERSION}-macos-${BUILD_ARCH}.zip"
 ZIP_PATH="$DIST_DIR/$ZIP_NAME"
 
 "$ROOT_DIR/scripts/build-macos-app.sh" >/dev/null
 
-rm -f "$DIST_DIR"/CodexUsageStatus-"$VERSION"-macos-*.zip "$DIST_DIR/SHA256SUMS.txt"
-ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
+rm -f "$DIST_DIR"/Codex-Dosage-"$VERSION"-macos-*.zip "$DIST_DIR/SHA256SUMS.txt"
+ditto -c -k --norsrc --noextattr --keepParent "$APP_DIR" "$ZIP_PATH"
 
 (
   cd "$DIST_DIR"

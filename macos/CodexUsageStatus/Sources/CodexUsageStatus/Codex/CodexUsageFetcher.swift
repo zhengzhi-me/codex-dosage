@@ -2,19 +2,19 @@ import Darwin
 import Foundation
 
 enum CodexUsageFetcher {
-    static func fetch() async throws -> UsageSummary {
+    static func fetch(binary: URL) async throws -> UsageSummary {
         try await Task.detached(priority: .utility) {
-            try fetchSync()
+            try fetchSync(binary: binary)
         }.value
     }
 
-    static func fetchSync() throws -> UsageSummary {
-        let response = try readRateLimits()
+    static func fetchSync(binary: URL) throws -> UsageSummary {
+        let response = try readRateLimits(binary: binary)
         return try UsageSummary(response: response)
     }
 
-    private static func readRateLimits() throws -> RateLimitsResponse {
-        let codexPath = ProcessInfo.processInfo.environment["CODEX_BIN"] ?? AppConfig.defaultCodexPath
+    private static func readRateLimits(binary: URL) throws -> RateLimitsResponse {
+        let codexPath = binary.path
         guard FileManager.default.isExecutableFile(atPath: codexPath) else {
             throw FetchError.codexNotFound(codexPath)
         }
@@ -37,6 +37,7 @@ enum CodexUsageFetcher {
         }
 
         let responseBox = ResponseBox()
+        standardError.fileHandleForReading.readabilityHandler = { handle in _ = handle.availableData }
         standardOutput.fileHandleForReading.readabilityHandler = { handle in
             responseBox.append(handle.availableData)
         }
@@ -44,12 +45,13 @@ enum CodexUsageFetcher {
         do {
             try process.run()
         } catch {
+            standardError.fileHandleForReading.readabilityHandler = nil
             standardOutput.fileHandleForReading.readabilityHandler = nil
             throw error
         }
 
         let requestLines = [
-            #"{"method":"initialize","id":1,"params":{"clientInfo":{"name":"codex_usage_status_menubar","title":"Codex Usage Status","version":"0.1.0"},"capabilities":{"experimentalApi":true}}}"#,
+            #"{"method":"initialize","id":1,"params":{"clientInfo":{"name":"codex_usage_status_menubar","title":"Codex Dosage","version":"0.1.0"},"capabilities":{"experimentalApi":true}}}"#,
             #"{"method":"initialized"}"#,
             #"{"method":"account/rateLimits/read","id":2}"#
         ].joined(separator: "\n") + "\n"
@@ -93,11 +95,11 @@ enum CodexUsageFetcher {
 final class ResponseBox: @unchecked Sendable {
     private let lock = NSLock()
     private let semaphore = DispatchSemaphore(value: 0)
-    private var buffer = ""
+    private var buffer = Data()
     private var storedResult: Result<RateLimitsResponse, Error>?
 
     func append(_ data: Data) {
-        guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else {
+        guard !data.isEmpty else {
             return
         }
 
@@ -108,9 +110,9 @@ final class ResponseBox: @unchecked Sendable {
             return
         }
 
-        buffer.append(text)
-        while let newline = buffer.firstIndex(of: "\n") {
-            let line = String(buffer[..<newline])
+        buffer.append(data)
+        while let newline = buffer.firstIndex(of: 10) {
+            let line = String(decoding: buffer[..<newline], as: UTF8.self)
             buffer.removeSubrange(...newline)
 
             do {
@@ -168,6 +170,8 @@ final class ResponseBox: @unchecked Sendable {
 
 enum FetchError: LocalizedError {
     case codexNotFound(String)
+    case invalidApplication
+    case applicationNotSelected
     case timeout
     case appServerExited(Int)
     case appServerError
@@ -176,18 +180,22 @@ enum FetchError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .applicationNotSelected:
+            return L.text("请选择应用安装位置", "Choose an application location")
+        case .invalidApplication:
+            return L.text("请选择有效的应用包", "Select a valid application bundle")
         case .codexNotFound(let path):
-            return "Codex binary not found at \(path)"
+            return L.text("未找到 Codex 可执行文件，请重新选择应用：\(path)", "Codex executable not found. Select the application again: \(path)")
         case .timeout:
-            return "Codex app-server did not respond within 20 seconds"
+            return L.text("读取用量超时（20 秒）", "Codex app-server did not respond within 20 seconds")
         case .appServerExited(let status):
-            return "Codex app-server exited with status \(status)"
+            return L.text("用量进程退出：\(status)", "Codex app-server exited with status \(status)")
         case .appServerError:
-            return "Codex app-server returned an error"
+            return L.text("用量读取失败，请确认已在官方应用中登录", "Codex app-server returned an error")
         case .invalidOutput:
-            return "Codex app-server returned unexpected usage data"
+            return L.text("应用返回了无法识别的用量数据", "Codex app-server returned unexpected usage data")
         case .missingRateLimitResponse:
-            return "Codex app-server did not return usage data"
+            return L.text("应用没有返回用量数据", "Codex app-server did not return usage data")
         }
     }
 }

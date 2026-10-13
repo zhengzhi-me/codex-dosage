@@ -1,11 +1,11 @@
 {
-  "name": "codex-usage-status",
+  "name": "codex-dosage",
   "version": "0.1.0",
   "description": "Read-only Codex usage status via the official local app-server.",
   "type": "module",
   "private": true,
   "bin": {
-    "codex-usage-status": "./src/cli.js"
+    "codex-dosage": "./src/cli.js"
   },
   "scripts": {
     "test": "node --test",
@@ -16,7 +16,8 @@
     "start:macos": "bash ./scripts/run-macos-app.sh",
     "install:macos": "bash ./scripts/install-macos-app.sh",
     "package:macos": "bash ./scripts/package-release.sh",
-    "package:macos:all": "bash ./scripts/package-all-macos.sh"
+    "package:macos:all": "bash ./scripts/package-all-macos.sh",
+    "test:macos": "bash ./scripts/test-macos.sh"
   },
   "engines": {
     "node": ">=20"

@@ -3,8 +3,8 @@ import Foundation
 
 if CommandLine.arguments.contains("--once") {
     do {
-        let usage = try CodexUsageFetcher.fetchSync()
-        print(usage.menuTitle)
+        let usage = try CodexUsageFetcher.fetchSync(binary: ApplicationResolver.resolve())
+        print(usage.verboseTitle)
         exit(0)
     } catch {
         fputs("\(error.localizedDescription)\n", stderr)

@@ -9,9 +9,9 @@ enum BadgeStyle: String, CaseIterable {
     var menuTitle: String {
         switch self {
         case .doubleRing:
-            return "Double Ring"
+            return L.text("双环", "Double Ring")
         case .largeReadout:
-            return "Large Readout"
+            return L.text("大字显示", "Large Readout")
         }
     }
 

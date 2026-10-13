@@ -1,7 +1,6 @@
 import Foundation
 
 enum AppConfig {
-    static let defaultCodexPath = "/Applications/Codex.app/Contents/Resources/codex"
     static let minimumRefreshInterval: TimeInterval = 60
     static let defaultRefreshInterval: TimeInterval = 120
     static let errorRetryInterval: TimeInterval = 300

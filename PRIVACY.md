@@ -1,6 +1,6 @@
 # Privacy
 
-Codex Usage Status is intentionally narrow: it shows local Codex usage status in the macOS menu bar.
+Codex Dosage is intentionally narrow: it shows Codex usage status in the macOS menu bar using the official local app-server. That server may contact OpenAI to obtain current account information.
 
 ## What the app reads
 

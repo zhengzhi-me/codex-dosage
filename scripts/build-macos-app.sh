@@ -4,7 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SWIFT_DIR="$ROOT_DIR/macos/CodexUsageStatus"
 DIST_DIR="$ROOT_DIR/dist"
-APP_DIR="$DIST_DIR/CodexUsageStatus.app"
+OUTPUT_APP="$DIST_DIR/Codex Dosage.app"
+BUILD_WORK="$(mktemp -d "${TMPDIR:-/tmp}/codex-dosage-build.XXXXXX")"
+trap 'rm -rf "$BUILD_WORK"' EXIT
+APP_DIR="$BUILD_WORK/Codex Dosage.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 VERSION="${VERSION:-0.1.0}"
@@ -43,6 +46,8 @@ BUILD_ARGS=(
   --triple "$TRIPLE"
 )
 
+BUILD_ARGS+=(--build-system native)
+
 swift build "${BUILD_ARGS[@]}"
 BINARY_DIR="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)"
 BINARY_PATH="$BINARY_DIR/CodexUsageStatus"
@@ -53,9 +58,14 @@ if [[ ! -x "$BINARY_PATH" ]]; then
 fi
 
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS_DIR"
+mkdir -p "$MACOS_DIR" "$CONTENTS_DIR/Resources"
 
-cp "$BINARY_PATH" "$MACOS_DIR/CodexUsageStatus"
+cp -X "$BINARY_PATH" "$MACOS_DIR/CodexUsageStatus"
+"$ROOT_DIR/scripts/build-icon.sh" "$CONTENTS_DIR/Resources/AppIcon.icns"
+cp -X "$ROOT_DIR/LICENSE" "$CONTENTS_DIR/Resources/LICENSE"
+cp -X "$ROOT_DIR/THIRD_PARTY_NOTICES.md" "$CONTENTS_DIR/Resources/THIRD_PARTY_NOTICES.md"
+mkdir -p "$CONTENTS_DIR/Resources/licenses"
+cp -X "$ROOT_DIR/licenses/Lucide-LICENSE" "$CONTENTS_DIR/Resources/licenses/Lucide-LICENSE"
 
 cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -67,7 +77,11 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundleIdentifier</key>
   <string>dev.local.CodexUsageStatus</string>
   <key>CFBundleName</key>
-  <string>Codex Usage Status</string>
+  <string>Codex Dosage</string>
+  <key>CFBundleDisplayName</key>
+  <string>Codex Dosage</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -87,6 +101,13 @@ PLIST
 /usr/bin/sed -i '' "s/__VERSION__/$VERSION/g" "$CONTENTS_DIR/Info.plist"
 /usr/bin/sed -i '' "s/__MIN_MACOS__/$MACOSX_DEPLOYMENT_TARGET/g" "$CONTENTS_DIR/Info.plist"
 
+/usr/bin/xattr -cr "$APP_DIR"
 codesign --force --sign "$CODESIGN_IDENTITY" "$APP_DIR" >/dev/null
+codesign --verify --deep --strict "$APP_DIR"
 
-echo "$APP_DIR"
+# Sign outside synced storage so Finder metadata cannot race with codesign.
+mkdir -p "$DIST_DIR"
+rm -rf "$OUTPUT_APP"
+ditto --norsrc --noextattr "$APP_DIR" "$OUTPUT_APP"
+
+echo "$OUTPUT_APP"
